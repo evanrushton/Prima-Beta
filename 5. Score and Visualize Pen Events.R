@@ -111,7 +111,10 @@ save_plot("./perfect.png", perfect, base_height=6)
 perfect
 
 #### 3D Plots ####
-library(rgl)
+install.packages("rgl")
+install.packages("magick")
+library("rgl")
+library("magick")
 z=iris
 #colors vector
 x=rep(0,150)
@@ -129,8 +132,9 @@ plot3d( z[,1], z[,2], z[,3], col = z$Color, type = "s", radius = .02 )
 
 play3d( spin3d( axis = c(0, 0, 1), rpm = 7), duration = 10 )
 
-#Save like gift
+#Save like gif
 
 movie3d( spin3d( axis = c(0, 0, 1), rpm = 7),
          duration = 10, dir = getwd(),
          type = "gif", clean = TRUE )
+
