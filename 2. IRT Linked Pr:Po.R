@@ -45,7 +45,7 @@ just_pr <- pr[c(-1)]
 just_po <- po[c(-1)]
 
 #Rasch
-res.rasch <- RM(just_po)
+res.rasch <- RM(link)
 #Person Parameters
 pres.rasch <- person.parameter(res.rasch)
 
