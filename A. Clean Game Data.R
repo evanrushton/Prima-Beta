@@ -34,6 +34,13 @@ ans <- as.data.frame(ans)
 ans[,7] <- sapply(ans[,7], function(y) gsub('\\{\\"challenge_type\\"', "", y))
 ans <- as.data.frame(ans)
 head(ans)
+# Relabel improperly labeled levels
+ans$gameLevel <- as.character(ans$gameLevel)
+ans$gameLevel[ans$gameLevel == "2.05"] <- "2.03a"
+ans$gameLevel[ans$gameLevel == "3.02b"] <- "3.01b"
+ans$gameLevel[ans$gameLevel == "3.04b"] <- "3.03b"
+ans$gameLevel[ans$gameLevel == "3.04d"] <- "3.03d"
+ans$gameLevel <- as.factor(ans$gameLevel)
 
 # ================== Clean pen actionData ===========================
 # tweenquotes <- "([\"\'])(?:(?=(\\\\?))\\2.)(*?)\\1"
