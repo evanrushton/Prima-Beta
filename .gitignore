@@ -1,1 +1,7 @@
 Data/
+Output/
+Logs/
+Resources/
+*.jpg
+*.pdf
+*.png

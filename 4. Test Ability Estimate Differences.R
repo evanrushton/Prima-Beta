@@ -12,13 +12,15 @@ hist(df$po_est, col=5, breaks=20)
 hist(df$diff, col=5, breaks=20)
 
 # Plot of Differences
-plot(df$diff,
+plot(x=df$pr_est,
+     y=df$po_est, 
      pch = 16,
-     ylab="Difference (Post Estimate – Pre Estimate)")
-abline(0,0, col="blue", lwd=2)
+     xlab="Pre Estimate",
+     ylab="Post Estimate")
+abline(0,1, col="blue", lwd=2)
 
 # paired t-test
-t.test(df$pr_est, df$po_est, paired=TRUE)  # significant difference in means
+t.test(df$po_est, df$pr_est, paired=TRUE)  # significant difference in means
 
 # 1:1 Plot of Ability Estimates
 plot(df$pr_est, df$po_est,
@@ -34,6 +36,12 @@ cohen.d(df$po_est, df$pr_est) # negligible effect
 ## compute Hedges' g
 cohen.d(df$po_est, df$pr_est, hedges.correction=TRUE) # negligible effect
 
+cor(df[4:8], use="complete.obs", method="pearson") 
+cov(df[4:8], use="complete.obs", method="pearson") 
+
+# Correlations with significance levels
+library(Hmisc)
+rcorr(as.matrix(df[4:8]), type="pearson") # type can be pearson or spearman
 
 # Notice the shape of these histograms
 # There is a large incidence of po_raw scores of 0

@@ -1,4 +1,5 @@
 # Merge Pre and Post scores for descriptives
+# Write mergeSurvey.csv (N = 343)
 
 library(pastecs) # For stat.desc descriptives
 library(readr) # For CSV file I/O
@@ -13,7 +14,7 @@ sapply(pr, function(y) sum(length(which(is.na(y))))) # 21 pre response vectors h
 df <- merge(pr, po, by = "uid")
 
 head(df)
-dim(pr); dim(po); dim(df) # only 343 kids completed both pre AND post?
+dim(pr); dim(po); dim(df) # only 343 kids completed both pre AND post
 
 # Check Merge with sample vector of kids vec
 vec <- c("8535", "8466", "8346", "8930", "9072")

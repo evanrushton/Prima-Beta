@@ -5,8 +5,15 @@
 library("eRm")
 library("dplyr")
 
-pr <- read.table("./Data/prsurvey.csv", header=TRUE, sep=",", as.is = TRUE)
-po <- read.table("./Data/posurvey.csv", header=TRUE, sep=",", as.is = TRUE)
+pr <- read.table("./Data/prsurvey.csv", header=TRUE, sep=",", as.is = TRUE) # 594 rows
+po <- read.table("./Data/posurvey.csv", header=TRUE, sep=",", as.is = TRUE) # 468 rows
+
+length(unique(pr$uid)) # 573
+length(unique(po$uid)) # 468
+ 
+
+# inspect duplicates
+pr[ duplicated(pr$uid), ] # there are 21 NA uid pr values here - Are they removed?
 
 # Remove non-item and non-id cols
 pr <- pr[c(-1, -2, -4, -5)]
@@ -23,24 +30,34 @@ pr[setdiff(names(po), names(pr))] <- NA
 po[setdiff(names(pr), names(po))] <- NA
 
 # Select kids with both pr/po
-pr1 <- filter(pr, uid %in% po$uid)
-po1 <- filter(po, uid %in% pr$uid)
+pr1 <- pr[pr$uid %in% po$uid, ]
+po1 <- po[po$uid %in% pr$uid, ]
 link2 <- rbind(pr1, po1) #stack dataframes vertically
 uids <- link2[c(1)]
 link <- link2[c(-1)]
 
+# Conduct Rasch with raw data (all uids)
+link_raw <- rbind(pr, po)
+link_raw <- link_raw[c(-1)]
+
+# conduct Rasch with just pr or just po
+just_pr <- pr[c(-1)]
+just_po <- po[c(-1)]
+
 #Rasch
-res.rasch <- RM(link)
+res.rasch <- RM(just_po)
 #Person Parameters
 pres.rasch <- person.parameter(res.rasch)
 
 #Andersen’s LR-test for goodness-of-fit with mean split criterion
 lrres.rasch <- LRtest(res.rasch, splitcr = "mean")
 lrres.rasch
-plotGOF(lrres.rasch, beta.subset = c(14, 5, 15, 3, 1), tlab = "item", # 14, 5, 18, 7, 1
+summary(lrres.rasch)
+
+plotGOF(lrres.rasch, beta.subset = c(13, 3, 18, 6, 1, 20) , tlab = "item", #c(14, 5, 15, 3, 1) 
         conf = list(ia = FALSE, col = "green", lty = "dotted"))
 #Wright Map
-plotPImap(res.rasch, sorted = TRUE)
+plotPImap(res.rasch, sorted = TRUE, cex.gen = 0.4)
 
 #Item Fit
 #For easy description of the fit statistics see: http://www.rasch.org/rmt/rmt82a.htm
@@ -65,4 +82,4 @@ hist(persons$thetapo, col=5, breaks=20)
 hist(persons$diff, col=5, breaks=20)
 
 plot(persons$thetapr, persons$thetapo)
-
+abline(0,1, col = 2)
