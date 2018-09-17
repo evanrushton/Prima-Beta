@@ -7,7 +7,7 @@ library(dplyr) # Data wrangling
 # Load raw data dump
 PATH = "./Data/primaBeta.csv"
 df <- read.table(PATH, fill = TRUE, header = TRUE, sep = ",") 
-# sapply(df, function(y) sum(length(which(is.na(y)))))
+#sapply(df, function(y) sum(length(which(is.na(y)))))
 
 # Select rows by actionName
 ans <- df[ which(df$actionName == "submit_answer"), ]
