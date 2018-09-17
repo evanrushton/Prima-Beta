@@ -6,12 +6,15 @@ library(reshape2)
 
 # Load in game answer submissions
 ans <- read.table("./Data/submit_answer.csv", fill = TRUE, header = TRUE, sep = ",")
-# Relabel improperly labeled levels
-ans$gameLevel <- as.character(ans$gameLevel)
-ans$gameLevel[ans$gameLevel == "2.05"] <- "2.03a"
-ans$gameLevel[ans$gameLevel == "3.02b"] <- "3.01b"
-ans$gameLevel[ans$gameLevel == "3.04b"] <- "3.03b"
-ans$gameLevel[ans$gameLevel == "3.04d"] <- "3.03d"
+
+# Select 1st attempts only
+ans <- ans[which(ans$attempt_count == 1), ]
+ans <- ans[ order(ans[,2], ans[,5]), ] # 8524 rows
+# Find duplicate uid/game level
+ans <- ans[!duplicated(ans[c("userId","gameLevel")]), ] # Remove duplicates (8407 rows)
+
+# View gameLevel sequences
+ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")]
 
 # Create gameLevel labels
 level_labels <- ans[, c(5,7,8)]
@@ -33,14 +36,7 @@ review3_levels <- c("3.01a", "3.01c", "3.03a")
 core4_levels <- c("T4.01a", "T4.01b", "T4.02", "T4.03a", "4.07b", "4.1", "4.16", "4.17", "4.13")
 review4_levels <- c("4.02a", "4.03a", "4.03b", "4.03c", "4.04a", "4.07b", "4.08", "4.11", "4.15")
 
-# Select 1st attempts only
-ans <- ans[which(ans$attempt_count == 1), ]
-ans <- ans[ order(ans[,2], ans[,5]), ] # 8524 rows
-# Find duplicate uid/game level
-ans <- ans[!duplicated(ans[c("userId","gameLevel")]), ] # Remove duplicates (8407 rows)
 
-# View gameLevel sequences
-ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")]
 
 # Pivot answer submissions to make response vectors
 resp <- ans[, c(2,5,9)]
