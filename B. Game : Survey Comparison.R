@@ -114,6 +114,7 @@ cor(com,com)[,c(1:5)]
 # Core levels 2-4 (core24Tot) have a positive correlation (0.37 po, 0.407 pr)
 # Survey Slopes (diff) have a negative correlation with pre and a positive correlation with post (-0.266 pr, 0.389 po)
 
+lm <- totals$po_est ~ totals$nonTutorialCoreTot
 
 # Load in game response vectors from Seth's data cleaning
 resp_val <- read.table("./Data/gameRespVec.csv", fill = TRUE, header = TRUE, sep = ",")
