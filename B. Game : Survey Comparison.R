@@ -30,6 +30,7 @@ core_levels <- c("T1.02a", "T1.03", "T1.05", "T1.04", "T1.07a", "1.05b", "1.09a"
 review_levels <- c("1.01a", "1.01b", "1.02b", "1.02c", "1.03a", "1.03c", "1.04a", "1.05a", "1.05c", "1.07b", "2.01a", "2.01b", "2.02a", "2.02c", "2.03b", "2.04a", "2.06a", "3.01a", "3.01c", "3.03a", "4.02a", "4.03a", "4.03b", "4.03c", "4.04a", "4.07b", "4.08", "4.11", "4.15") #29 levels
 non_tutorial_core <- c("1.05b", "1.09a", "1.08", "1.07a", "1.06", "2.01c", "2.06b", "2.05a", "2.04b", "2.03a", "3.01b", "3.03b", "3.03d", "4.07b", "4.1", "4.16", "4.17", "4.13") #18 levels
 tutorial_core <- c("T1.02a", "T1.03", "T1.05", "T1.04", "T1.07a", "T3.01a", "T4.01a", "T4.01b", "T4.02", "T4.03a") #10 levels
+totals_list <- list(all=all_levels, core=core_levels, review=review_levels, ntc=non_tutorial_core, tc=tutorial_core)
 core1_levels <- c("T1.02a", "T1.03", "T1.05", "T1.04", "T1.07a", "1.05b", "1.09a", "1.08", "1.07a", "1.06") #10 levels
 review1_levels <- c("1.01a", "1.01b", "1.02b", "1.02c", "1.03a", "1.03c", "1.04a", "1.05a", "1.05c", "1.07b") #10 levels
 ntc1_levels <- c("1.05b", "1.09a", "1.08", "1.07a", "1.06") #5 levels
@@ -42,7 +43,8 @@ ntc3_levels <- c("3.01b", "3.03b", "3.03d") #3 levels
 core4_levels <- c("T4.01a", "T4.01b", "T4.02", "T4.03a", "4.07b", "4.1", "4.16", "4.17", "4.13") #9 levels
 review4_levels <- c("4.02a", "4.03a", "4.03b", "4.03c", "4.04a", "4.07b", "4.08", "4.11", "4.15") #9 levels
 ntc4_levels <- c("4.07b", "4.1", "4.16", "4.17", "4.13") #5 levels
-  
+levels_list <- list(core1=core1_levels, review1=review1_levels, ntc1=ntc1_levels, core2=core2_levels, review2=review2_levels, core3=core3_levels, review3=review3_levels, ntc3=ntc3_levels, core4=core4_levels, review4=review4_levels, ntc4=ntc4_levels)
+
 # Pivot answer submissions to make response vectors
 resp <- ans[, c(2,5,9)]
 resp <- dcast(resp, userId ~ gameLevel, fill = 3, fun.aggregate = mean)
@@ -53,14 +55,27 @@ sapply(resp, function(y) sum((!is.na(y)))) # Attempt counts
 resp <- resp[ , setdiff(names(resp), c("T2.01", "T1.01", "T2.01-REPLACE"))]
 resp <- data.frame(lapply(resp, function(x) as.numeric(as.character(x))), check.names = FALSE)
 names(resp)[1] <- "uid" # change name for later merge with theta
+cols <- ncol(resp)
 
+resp$completed <- sapply(1:nrow(resp), function(x) sum(!is.na(resp[x,2:cols])))
+
+# Trying to count completed amount for each list of levels in one sapply statement?
 # Count number of challenges completed (0 or 1)
-resp <- mutate(resp[-c(1)], completed = sum(!is.na()))
-resp$completed <- sapply(1:nrow(resp), function(x) sum(!is.na(resp[x,])))
+CountComplete <- function(levelslist) {
+  for (i in 1:length(levelslist)) {
+    name <- paste0(names(levelslist)[i], "complete")
+    return(name, sapply(1:nrow(resp), function(x) sum(!is.na(resp[x,levelslist[i]])))) 
+  }
+}
+resp$CountComplete(totals_list)
+sapply(1:nrow(resp), function(x,y) resp %>% select(which(names(resp) %in% y)) %>% sum(!is.na(resp[x,y]))) -> resp$
+sapply(totals_list, function(y) resp %>% select(which(names(resp) %in% y)) %>% rowSums(na.rm=TRUE)) -> resp$y
 
 # ===== All challenges completed (N = 697) =====
-# Find total score across game data response vectors (respTotals)
-resp %>%select(which(names(resp) %in% all_levels)) %>% rowSums(na.rm=TRUE) -> resp$allTot
+# Find total score across game data response vectors (totals_list)
+resp %>% select(which(names(resp) %in% all_levels)) %>% rowSums(na.rm=TRUE) -> resp$allTot
+resp$allTot <- resp$allTot / resp$completed
+
 # Since review levels are not seen by all players, subset into core levels
 resp %>% select(which(names(resp) %in% core_levels)) %>% rowSums(na.rm=TRUE) -> resp$coreTot
 # to see how review levels compare, look at them independently
@@ -107,6 +122,9 @@ resp <- mutate(resp, coreTotratio = coreTot / 28)
 resp <- mutate(resp, reviewTotratio = reviewTot / 29)
 resp <- mutate(resp, ntcratio = nonTutorialCoreTot / 18) 
 resp <- mutate(resp, tutorialCoreratio = tutorialCoreTot / 10) 
+
+#temporary test
+respTotals <- resp[, c("uid", "allTot")]
 
 # Form matrices of different response vectors to compare correlations
 respTotals <- resp[, c("uid", "allTot", "coreTot", "reviewTot", "nonTutorialCoreTot", "tutorialCoreTot", "allTotratio", "coreTotratio", "reviewTotratio", "ntcratio", "tutorialCoreratio")]
@@ -197,8 +215,8 @@ cor(num_val,num_val) # pr/po data is positively correlated.
 # 0.1735607, slight positive correlation Grand.Total with po_est
 
 # Correlation between in-game performance and pr/po ability estimates 
-gameperf <- combos$L24Tot
-thetapo <- combos$po_est
+gameperf <- tot$allTot
+thetapo <- tot$po_est
 diff <- combos$diff
 core24 <- combos$core24Tot
 cor(gameperf,thetapo) # allTot: 0.2706906 | core24: 0.5008602 | L24Tot: 0.5279933 (slight positive correlation)
@@ -206,7 +224,7 @@ cor(gameperf,thetapo) # allTot: 0.2706906 | core24: 0.5008602 | L24Tot: 0.527993
 # 1:1 Plot of Game Performance vs Post Ability Estimates
 plot(gameperf, thetapo,
      pch = 16,
-     xlab="Levels 2-4 Game Performance (10 or more completed)",
+     xlab="Levels 1-4 Game Performance",
      ylab="Ability Post")
 abline(lm(thetapo ~ gameperf), col="red", lwd=2)
 abline(-4,2/3, col="blue", lwd=1, lty="dashed" )
