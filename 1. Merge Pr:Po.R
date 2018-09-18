@@ -5,8 +5,8 @@ library(pastecs) # For stat.desc descriptives
 library(readr) # For CSV file I/O
 
 # Read in the pre-test and post-test data
-pr <- read.table("./Data/prsurvey.csv", header=TRUE, sep=",", as.is = TRUE)
-po <- read.table("./Data/posurvey.csv", header=TRUE, sep=",", as.is = TRUE)
+pr <- read.table("./Data/prsurvey.csv", header=TRUE, sep=",", as.is = TRUE) # [1] 594  29
+po <- read.table("./Data/posurvey.csv", header=TRUE, sep=",", as.is = TRUE) # [1] 468  27
 
 sapply(pr, function(y) sum(length(which(is.na(y))))) # 21 pre response vectors have no uid
 
