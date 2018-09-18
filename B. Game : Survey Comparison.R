@@ -6,6 +6,9 @@ library(reshape2)
 
 # Load in game answer submissions
 ans <- read.table("./Data/submit_answer.csv", fill = TRUE, header = TRUE, sep = ",")
+# Load in pr/po scores and ability estimates (thetas)
+theta <- read.table("./Data/prpotheta.csv", fill = TRUE, header = TRUE, sep = ",") 
+theta <- cbind(theta, diff=theta$po_est-theta$pr_est) # add column with difference between ability estimates (po - pr)
 
 # Select 1st attempts only
 ans <- ans[which(ans$attempt_count == 1), ] # 8524 rows
@@ -45,11 +48,17 @@ resp <- ans[, c(2,5,9)]
 resp <- dcast(resp, userId ~ gameLevel, fill = 3, fun.aggregate = mean)
 # Replace non-attempts with NA and keep 0 for first attempt fails
 resp <- data.frame(lapply(resp, function(y) gsub("^3$", NA, y)), check.names = FALSE)
-sapply(resp, function(y) sum(length(which(!is.na(y))))) # Attempt counts
+sapply(resp, function(y) sum((!is.na(y)))) # Attempt counts
 # Remove hand-feeding challenges T2.01 T1.01 T2.01.REPLACE (adult ram, baby ram, 3 baby ram)
 resp <- resp[ , setdiff(names(resp), c("T2.01", "T1.01", "T2.01-REPLACE"))]
 resp <- data.frame(lapply(resp, function(x) as.numeric(as.character(x))), check.names = FALSE)
+names(resp)[1] <- "uid" # change name for later merge with theta
 
+# Count number of challenges completed (0 or 1)
+resp <- mutate(resp[-c(1)], completed = sum(!is.na()))
+resp$completed <- sapply(1:nrow(resp), function(x) sum(!is.na(resp[x,])))
+
+# ===== All challenges completed (N = 697) =====
 # Find total score across game data response vectors (respTotals)
 resp %>%select(which(names(resp) %in% all_levels)) %>% rowSums(na.rm=TRUE) -> resp$allTot
 # Since review levels are not seen by all players, subset into core levels
@@ -92,17 +101,19 @@ resp <- mutate(resp, core34Tot = core3Tot + core4Tot)
 resp <- mutate(resp, review34Tot = review3Tot + review4Tot)
 resp <- mutate(resp, ntc34Tot = ntc3Tot + ntc4Tot)
 
+# Turn total vars into ratios to see if there is a correlation difference?
+resp <- mutate(resp, allTotratio = allTot / 58) 
+resp <- mutate(resp, coreTotratio = coreTot / 28) 
+resp <- mutate(resp, reviewTotratio = reviewTot / 29)
+resp <- mutate(resp, ntcratio = nonTutorialCoreTot / 18) 
+resp <- mutate(resp, tutorialCoreratio = tutorialCoreTot / 10) 
+
 # Form matrices of different response vectors to compare correlations
-names(resp)[1] <- "uid"
-respTotals <- resp[, c("uid", "allTot", "coreTot", "reviewTot", "nonTutorialCoreTot", "tutorialCoreTot")]
+respTotals <- resp[, c("uid", "allTot", "coreTot", "reviewTot", "nonTutorialCoreTot", "tutorialCoreTot", "allTotratio", "coreTotratio", "reviewTotratio", "ntcratio", "tutorialCoreratio")]
 respLevels <- resp[, c("uid", "L1Tot", "core1Tot", "review1Tot", "ntc1Tot", "L2Tot", "core2Tot","review2Tot", "ntc2Tot", "L3Tot", "core3Tot", "review3Tot", "ntc3Tot", "L4Tot", "core4Tot", "review4Tot", "ntc4Tot")]
 respCombos <- resp[, c("uid", "L23Tot", "core23Tot", "review23Tot", "ntc23Tot", "L24Tot", "core24Tot","review24Tot", "ntc24Tot", "L34Tot", "core34Tot", "review34Tot", "ntc34Tot")]
 
-# Load in pr/po scores and ability estimates (thetas)
-theta <- read.table("./Data/prpotheta.csv", fill = TRUE, header = TRUE, sep = ",") 
-theta <- cbind(theta, diff=theta$po_est-theta$pr_est) # add column with difference between ability estimates (po - pr)
-
-# Merge pr/po/resp totals by UID
+# Merge pr/po/resp totals by UID (N = 266)
 totals <- merge(theta, respTotals, by = "uid")
 levels <- merge(theta, respLevels, by = "uid")
 combos <- merge(theta, respCombos, by = "uid")
@@ -124,6 +135,57 @@ anova(model)
 summary(model)
 plot(model)
 
+# ===== 10 or more challenges (N = 421)  =====
+tenOrMore <- resp[which(resp$completed >= 10),]
+
+# Find total score across game data response vectors (respTotals)
+tenOrMore %>%select(which(names(tenOrMore) %in% all_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$allTot
+# Since review levels are not seen by all players, subset into core levels
+tenOrMore %>% select(which(names(tenOrMore) %in% core_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$coreTot
+tenOrMore %>% select(which(names(tenOrMore) %in% non_tutorial_core)) %>% rowSums(na.rm=TRUE) -> tenOrMore$nonTutorialCoreTot
+tenOrMore %>% select(which(names(tenOrMore) %in% c(review2_levels, core2_levels))) %>% rowSums(na.rm=TRUE) -> tenOrMore$L2Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% core2_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$core2Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% ntc2_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$ntc2Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% c(review3_levels, core3_levels))) %>% rowSums(na.rm=TRUE) -> tenOrMore$L3Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% core3_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$core3Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% ntc3_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$ntc3Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% c(review4_levels, core4_levels))) %>% rowSums(na.rm=TRUE) -> tenOrMore$L4Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% core4_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$core4Tot
+tenOrMore %>% select(which(names(tenOrMore) %in% ntc4_levels)) %>% rowSums(na.rm=TRUE) -> tenOrMore$ntc4Tot
+tenOrMore <- mutate(tenOrMore, L23Tot = L2Tot + L3Tot)
+tenOrMore <- mutate(tenOrMore, core23Tot = core2Tot + core3Tot)
+tenOrMore <- mutate(tenOrMore, ntc23Tot = ntc2Tot + ntc3Tot)
+tenOrMore <- mutate(tenOrMore, L24Tot = L2Tot + L3Tot + L4Tot)
+tenOrMore <- mutate(tenOrMore, core24Tot = core2Tot + core3Tot + core4Tot)
+tenOrMore <- mutate(tenOrMore, ntc24Tot = ntc2Tot + ntc3Tot + ntc4Tot)
+tenOrMore <- mutate(tenOrMore, L34Tot = L3Tot + L4Tot)
+tenOrMore <- mutate(tenOrMore, core34Tot = core3Tot + core4Tot)
+tenOrMore <- mutate(tenOrMore, ntc34Tot = ntc3Tot + ntc4Tot)
+
+# Form matrices of different response vectors to compare correlations
+tenOrMoreTotals <- tenOrMore[, c("uid", "allTot", "coreTot", "nonTutorialCoreTot")]
+tenOrMoreLevels <- tenOrMore[, c("uid", "L2Tot", "core2Tot", "ntc2Tot", "L3Tot", "core3Tot", "ntc3Tot", "L4Tot", "core4Tot", "ntc4Tot")]
+tenOrMoreCombos <- tenOrMore[, c("uid", "L23Tot", "core23Tot", "ntc23Tot", "L24Tot", "core24Tot", "ntc24Tot", "L34Tot", "core34Tot", "ntc34Tot")]
+
+# Merge pr/po/tenOrMore totals by UID (N = 171)
+totals <- merge(theta, tenOrMoreTotals, by = "uid")
+levels <- merge(theta, tenOrMoreLevels, by = "uid")
+combos <- merge(theta, tenOrMoreCombos, by = "uid")
+
+tot <- totals[, 4:ncol(totals)] # Highest correlation with nonTutorialCoreTot -> 0.4227186  0.3471241  0.3519837 0.4313662
+lev <- levels[, 4:ncol(levels)] # Highest correlation with Level 3, L3Tot -> 0.4711034  0.4450931  0.4273116 0.4330594 (only 7, 4, and 3 levels...)
+com <- combos[, 4:ncol(combos)] #
+# Pearson correlation
+cor(tot,tot)[,c(1:5)] 
+cor(lev,lev)[,c(1:5)] 
+cor(com,com)[,c(1:5)] 
+
+summary(tenOrMore)
+hist(combos$L24Tot, col=5, breaks=20)
+hist(combos$core24Tot, col=5, breaks=20)
+hist(combos$ntc24Tot, col=5, breaks=20)
+
+
 
 # Load in game response vectors from Seth's data cleaning
 resp_val <- read.table("./Data/gameRespVec.csv", fill = TRUE, header = TRUE, sep = ",")
@@ -135,18 +197,19 @@ cor(num_val,num_val) # pr/po data is positively correlated.
 # 0.1735607, slight positive correlation Grand.Total with po_est
 
 # Correlation between in-game performance and pr/po ability estimates 
-gameperf <- totals$nonTutorialCoreTot
-thetapo <- totals$po_est
-diff <- totals$diff
+gameperf <- combos$L24Tot
+thetapo <- combos$po_est
+diff <- combos$diff
 core24 <- combos$core24Tot
-cor(gameperf,thetapo) # allTot: 0.1793418 | core24: 0.3731535 (slight positive correlation)
+cor(gameperf,thetapo) # allTot: 0.2706906 | core24: 0.5008602 | L24Tot: 0.5279933 (slight positive correlation)
 
 # 1:1 Plot of Game Performance vs Post Ability Estimates
 plot(gameperf, thetapo,
      pch = 16,
-     xlab="Non-tutorial Core Game Performance",
+     xlab="Levels 2-4 Game Performance (10 or more completed)",
      ylab="Ability Post")
-abline(-4,2/5, col="blue", lwd=2)
+abline(lm(thetapo ~ gameperf), col="red", lwd=2)
+abline(-4,2/3, col="blue", lwd=1, lty="dashed" )
 
 plot(core24, thetapo, # Since core24Tot has a better correlation with thetapo, may be a more telling measure
      pch = 16,
