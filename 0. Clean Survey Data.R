@@ -1,4 +1,6 @@
-# Clean original Surveygizmo .csv dumps for prea/preb forms and posta/postb forms
+# Clean original Surveygizmo .csv dumps for prea/preb/posta/postb forms and write to "linking_item_responses.csv"
+# Author: Evan Rushton
+# Date created: 9-20-18
 
 library(tidyverse)
 
@@ -49,6 +51,9 @@ nonlink_po <- setdiff(names(po)[12:ncol(po)], link_items)
 prlink <- pr[,which(names(pr) %in% setdiff(names(pr),nonlink_pr))]
 polink <- po[,which(names(po) %in% setdiff(names(po),nonlink_po))]
 df <- rbind(prlink,polink)
+# write to csv
+write_csv(df, "./Data/linking_item_responses.csv", na = "NA", append = FALSE, col_names = TRUE)
+
 # Check Responses
 table(df$`12.MD.NUR_L`) # Need to clean some of the responses
 # Isolate digits
