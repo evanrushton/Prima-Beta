@@ -15,21 +15,19 @@ ans <- ans[which(ans$attempt_count == 1), ] # 8524 rows
 ans <- ans[ order(ans[,2], ans[,5]), ] # Order by userId and gameLevel
 # Find duplicate uid/game level
 ans <- ans[!duplicated(ans[c("userId","gameLevel")]), ] # Remove duplicates (8407 rows)
-
-# View gameLevel sequences
-ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")]
+# Remove hand-feeding challenges T2.01 T1.01 T2.01.REPLACE (adult ram, baby ram, 3 baby ram)
+ans <- setdiff(ans, ans[which(ans$gameLevel %in% c("T2.01", "T1.01", "T2.01-REPLACE")), ])
 
 # ===== Create gameLevel lists ============
 level_types <- ans[, c(5,8)]
 level_types <- level_types[!duplicated(level_types$gameLevel), ] 
 level_types <- level_types[ order(level_types[,1]), ]
 # Look at levels across the entire game (totals_list)
-all_levels <- as.character(level_types$gameLevel)
-# Remove hand-feeding challenges T2.01 T1.01 T2.01.REPLACE (adult ram, baby ram, 3 baby ram)
-all_levels <- setdiff(all_levels, c("T2.01", "T1.01", "T2.01-REPLACE"))
-# Since review levels are not seen by all players, subset into core levels
+
+all_levels <- c("T1.02a", "T1.02b", "T1.03", "T1.05", "T1.04", "T1.07a", "1.05b", "1.03a", "1.03c", "1.02b", "1.02c", "1.01a", "1.01b", "1.09a", "1.08", "1.07a", "1.07b", "1.05a", "1.05c", "1.04a", "1.06", "2.01c", "2.02a", "2.02c", "2.01a", "2.01b", "2.06b", "2.05a", "2.04b", "2.06a", "2.05b", "2.03b", "2.04a", "2.03a", "T3.01a", "3.01b", "3.01a", "3.01c", "3.03b", "3.03a", "3.03d", "T4.01a", "T4.01b", "T4.02", "T4.03a", "4.07b", "4.04a", "4.03a", "4.03b", "4.03c", "4.02a", "4.1", "4.16", "4.17", "4.15", "4.08", "4.11", "4.13") #58 levels
+# Since review challenges are not seen by all players, subset into core challenges
 core_levels <- c("T1.02a", "T1.03", "T1.05", "T1.04", "T1.07a", "1.05b", "1.09a", "1.08", "1.07a", "1.06", "2.01c", "2.06b", "2.05a", "2.04b", "2.03a", "T3.01a", "3.01b", "3.03b", "3.03d", "T4.01a", "T4.01b", "T4.02", "T4.03a", "4.07b", "4.1", "4.16", "4.17", "4.13") #28 levels
-review_levels <- c("1.01a", "1.01b", "1.02b", "1.02c", "1.03a", "1.03c", "1.04a", "1.05a", "1.05c", "1.07b", "2.01a", "2.01b", "2.02a", "2.02c", "2.03b", "2.04a", "2.06a", "3.01a", "3.01c", "3.03a", "4.02a", "4.03a", "4.03b", "4.03c", "4.04a", "4.07b", "4.08", "4.11", "4.15") #29 levels
+review_levels <- c("T1.02b", "1.03a", "1.03c", "1.02b", "1.02c", "1.01a", "1.01b", "1.07b", "1.05a", "1.05c", "1.04a", "2.02a", "2.02c", "2.01a", "2.01b", "2.05b", "2.06a", "2.03b", "2.04a", "3.01a", "3.01c", "3.03a", "4.04a", "4.03a", "4.03b", "4.03c", "4.02a", "4.15", "4.08", "4.11") #30 levels
 # Check tutorial vs non-tutorial levels
 non_tutorial_core <- c("1.05b", "1.09a", "1.08", "1.07a", "1.06", "2.01c", "2.06b", "2.05a", "2.04b", "2.03a", "3.01b", "3.03b", "3.03d", "4.07b", "4.1", "4.16", "4.17", "4.13") #18 levels
 tutorial_core <- c("T1.02a", "T1.03", "T1.05", "T1.04", "T1.07a", "T3.01a", "T4.01a", "T4.01b", "T4.02", "T4.03a") #10 levels
@@ -51,6 +49,51 @@ levels_list <- list(L1=c(core1_levels, review1_levels), core1=core1_levels, revi
 # Check level combinations after level 1 (combos_list) {2-3, 2-4, 3-4} 
 combos_list <- list(L23=c("L2","L3"), core23=c("core2", "core3"), review23=c("review2", "review3"), ntc23=c("ntc2", "ntc3"), L24=c("L2","L3", "L4"), core24=c("core2", "core3", "core4"), review24=c("review2", "review3", "review4"), ntc24=c("ntc2", "ntc3", "ntc4"), L34=c("L3", "L4"), core34=c("core3", "core4"), review34=c("review3", "review4"), ntc34=c("ntc3", "ntc4"))
 
+# ===== Exploring gameLevels =====
+
+ans$gameLevel <- as.character(ans$gameLevel)
+ans$success <- as.factor(ans$success)
+g <- ggplot(ans[which(ans$gameLevel %in% non_tutorial_core), c("gameLevel", "success")])
+g + geom_bar((aes(x=factor(gameLevel, levels=non_tutorial_core), fill=success))) +
+  theme(text = element_text(size=10), axis.text.x = element_text(angle=90, hjust=1)) + 
+  xlab("Non-Tutorial Core Levels") +
+  ggtitle("All Player (N = 697) Prima Beta Performance Across Non-Tutorial Core Levels")
+
+# ===== Explore gameLevelSequences =====
+# View gameLevel sequences
+ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")]
+# Create df of sequences for each userId
+seq <- ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")]
+seq$gameLevel <- sapply(ans$gameLevel, function(x) match(x, all_levels))
+seq <- seq[,c(1,3)] # Only uid and gameLevel
+seq %>% 
+  mutate(level = case_when(
+    lag(.$userId) != .$userId ~"Start",
+    lead(.$userId) != .$userId ~"End",
+    TRUE ~ "other"
+  )
+  ) -> seq
+seq$level[1] <- "Start"
+seq$level[7325] <- "End"
+# Sequence lengths
+len <- aggregate(gameLevel~userId,seq,length)
+names(len)[2] <- "length"
+seq <- merge(seq, len, by="userId")
+seq$level <- as.factor(seq$level)
+seq10 <- seq[which(seq$length > 10),]
+s <- ggplot(seq10) #"dodgerblue", "goldenrod","darkorchid","chocolate"
+s + geom_point((aes(x=factor(all_levels[gameLevel], levels=all_levels), y=userId, color=level))) +
+  theme(text = element_text(size=10), axis.text.x = element_text(angle=90, hjust=1)) + 
+  xlab("Game Challenge") +
+  ggtitle("All Player (N = 697) Prima Beta Level Sequences") +
+  scale_color_manual(values=c("black","gray","red")) 
+
+# Distribution of sequence lengths
+
+boxplot(len$gameLevel,data=len, main="Sequence Lengths", 
+        ylab="Length of Game Challenge Sequence")
+hist(len$gameLevel)
+
 # ===== Pivot answer submissions to make response vectors =====
 resp <- ans[, c(2,5,9)]
 resp <- dcast(resp, userId ~ gameLevel, fill = 3, fun.aggregate = mean)
@@ -63,7 +106,9 @@ resp <- data.frame(lapply(resp, function(x) as.numeric(as.character(x))), check.
 names(resp)[1] <- "uid" # change name for later merge with theta
 cols <- ncol(resp)
 
-# ===== All challenges completed (N = 697) =====
+# ===== Exploring response vectors =====
+
+# ===== Feature Engineering on All challenges completed (N = 697) =====
 # Find number complete (Comp), total correct (Tot), and percent correct (Per) across game data response vectors 
 for (i in 1:length(totals_list)) {
   complete <- paste0(names(totals_list)[[i]], "Comp")
@@ -97,7 +142,7 @@ for (i in 1:length(combos_list)) {
 #resp[, sapply(names(levels_list), function(x) paste0(x, "Per"))][apply(resp[, sapply(names(levels_list), function(x) paste0(x, "Per"))], c(1,2), is.nan)] <- NA
 #resp[, sapply(names(combos_list), function(x) paste0(x, "Per"))][apply(resp[, sapply(names(combos_list), function(x) paste0(x, "Per"))], c(1,2), is.nan)] <- NA
 
-# ==== Compare correlations ====
+# ===== Compare correlations (All) ====
 respTotals <- resp[, c("uid", sapply(names(totals_list), function(x) paste0(x, "Per")))]
 respLevels <- resp[, c("uid", sapply(names(levels_list), function(x) paste0(x, "Per")))]
 respCombos <- resp[, c("uid", sapply(names(combos_list), function(x) paste0(x, "Per")))]
@@ -124,10 +169,11 @@ anova(model)
 summary(model)
 plot(model)
 
-# ===== 10 or more challenges (N = 373)  =====
-resp$completed <- sapply(1:nrow(resp), function(x) sum(!is.na(resp[x, 2:ncol(resp)])))
+# ===== Feature Engineering on 10 or more challenges completed (N = 373)  =====
+resp$completed <- sapply(1:nrow(resp), function(x) sum(!is.na(resp[x, all_levels])))
 tenOrMore <- resp[which(resp$completed >= 10),]
 
+# Percent Correct feature for full-game challenge subsets
 for (i in 1:length(totals_list)) {
   complete <- paste0(names(totals_list)[[i]], "Comp")
   tenOrMore[,complete] <- sapply(1:nrow(tenOrMore), function(x) sum(!is.na(tenOrMore[x,totals_list[[i]]]))) # Count number of challenges completed (0 or 1)
@@ -137,6 +183,7 @@ for (i in 1:length(totals_list)) {
   tenOrMore[,percent] <- tenOrMore[,correct] / tenOrMore[,complete]
 }
 
+# Percent Correct feature for single level challenge subsets
 for (i in 1:length(levels_list)) {
   complete <- paste0(names(levels_list)[[i]], "Comp")
   tenOrMore[,complete] <- sapply(1:nrow(tenOrMore), function(x) sum(!is.na(tenOrMore[x,levels_list[[i]]]))) # Count number of challenges completed (0 or 1)
@@ -146,6 +193,7 @@ for (i in 1:length(levels_list)) {
   tenOrMore[,percent] <- tenOrMore[,correct] / tenOrMore[,complete]
 }
 
+# Percent Correct feature for later level combination challenge subsets
 for (i in 1:length(combos_list)) {
   complete <- paste0(names(combos_list)[[i]], "Comp")
   tenOrMore %>% select(which(names(tenOrMore) %in% sapply(combos_list[[i]], function(x) paste0(x, "Comp")))) %>% rowSums(na.rm=TRUE) -> tenOrMore[,complete]
@@ -155,7 +203,7 @@ for (i in 1:length(combos_list)) {
   tenOrMore[,percent] <- tenOrMore[,correct] / tenOrMore[,complete]
 }
 
-# Form matrices of different response vectors to compare correlations
+# ===== Compare correlations (10 or more) =====
 tenOrMoreTotals <- tenOrMore[, c("uid", sapply(names(totals_list), function(x) paste0(x, "Per")))]
 tenOrMoreLevels <- tenOrMore[, c("uid", sapply(names(levels_list), function(x) paste0(x, "Per")))]
 tenOrMoreCombos <- tenOrMore[, c("uid", sapply(names(combos_list), function(x) paste0(x, "Per")))]
