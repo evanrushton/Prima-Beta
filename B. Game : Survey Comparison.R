@@ -4,7 +4,7 @@
 library(tidyverse)
 library(reshape2)
 
-# ===== Load in game answer submissions =====
+# ===== Load game answer submissions =====
 ans <- read.table("./Data/submit_answer.csv", fill = TRUE, header = TRUE, sep = ",")
 # Load in pr/po scores and ability estimates (thetas)
 theta <- read.table("./Data/prpotheta.csv", fill = TRUE, header = TRUE, sep = ",") 
@@ -61,11 +61,9 @@ g + geom_bar((aes(x=factor(gameLevel, levels=non_tutorial_core), fill=success)))
 
 # ===== Explore gameLevelSequences =====
 # View gameLevel sequences
-ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")]
+ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")] # 7325
 # Create df of sequences for each userId
 seq <- ans[order(ans[,2], ans[,1]), c("userId", "clientTimeStamp", "gameLevel", "success")]
-seq$gameLevel <- sapply(ans$gameLevel, function(x) match(x, all_levels))
-seq <- seq[,c(1,3)] # Only uid and gameLevel
 seq %>% 
   mutate(level = case_when(
     lag(.$userId) != .$userId ~"Start",
@@ -78,16 +76,34 @@ seq$level[7325] <- "End"
 # Sequence lengths
 len <- aggregate(gameLevel~userId,seq,length)
 names(len)[2] <- "length"
-seq <- merge(seq, len, by="userId")
+seq <- merge(seq, len, by="userId") #689 users
 seq$level <- as.factor(seq$level)
-seq10 <- seq[which(seq$length > 10),]
-s <- ggplot(seq10) #"dodgerblue", "goldenrod","darkorchid","chocolate"
+seq10 <- seq[which(seq$length > 10),] #335 users
+all_levels # Note which levels
+subsetter <- which(seq$length > 10 & seq$level=="Start" & seq$gameLevel=="T1.02a") # 115 users (length > 10, START not on T1.02a)  # 80 users (length > 10, END on T3.01a)
+df <- seq[subsetter,]
+uids <- unique(df$userId)
+seq[which(seq$userId %in% uids), ]
+
+# Perhaps users restarted? But why would they start on? No it looks like the timestamps were improperly ordered.
+
+s <- ggplot(df) #"dodgerblue", "goldenrod","darkorchid","chocolate"
+s + geom_point((aes(x=factor(gameLevel, levels=all_levels), y=userId, color=level))) +
+  theme(text = element_text(size=10), axis.text.x = element_text(angle=90, hjust=1)) + 
+  xlab("Game Challenge") +
+  ggtitle("Sequence Start Challenge (after T1.02a with 10 or More Challenges)") +
+  scale_color_manual(values=c("black","gray","red")) 
+
+# seq$gameLevel <- sapply(ans$gameLevel, function(x) match(x, all_levels)) # turn strings to integer index
+s <- ggplot(df) #"dodgerblue", "goldenrod","darkorchid","chocolate"
 s + geom_point((aes(x=factor(all_levels[gameLevel], levels=all_levels), y=userId, color=level))) +
   theme(text = element_text(size=10), axis.text.x = element_text(angle=90, hjust=1)) + 
   xlab("Game Challenge") +
   ggtitle("All Player (N = 697) Prima Beta Level Sequences") +
   scale_color_manual(values=c("black","gray","red")) 
 
+# Sequences that don't start on "T1.02a"?
+table(seq[seq$level=="Start",]$gameLevel)
 # Distribution of sequence lengths
 
 boxplot(len$gameLevel,data=len, main="Sequence Lengths", 
