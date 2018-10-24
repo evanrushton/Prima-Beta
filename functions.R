@@ -16,15 +16,16 @@ clean_submit_answer_data <- function(df) {
   # Remove actionData
   ans <- ans[,!(names(ans) %in% c("actionData"))]  
   
-  #### Clean ans actionData ####
+  #### Clean ans actionData - use column names rather than references ####
   pattern <- '^.*:(\\w*)' #  HEADER:VALUE, \\1 <- VALUE
   replacement <- "\\1"
-  ans[,5:9] <- sapply(ans[,5:9], function(y) gsub(pattern, replacement, y, perl=T)) # HEADER:VALUE -> VALUE
+  cols <- c("challenge_type", "problem_type", "success", "attempt_count", "latency")
+  ans[,cols] <- sapply(ans[,cols], function(y) gsub(pattern, replacement, y, perl=T)) # HEADER:VALUE -> VALUE
   ans <- as.data.frame(ans)
   # Remove } and \"
-  ans[,9] <- sapply(ans[,9], function(y) gsub("}", "", y))
+  ans[,"latency"] <- sapply(ans[,"latency"], function(y) gsub("}", "", y))
   ans <- as.data.frame(ans)
-  ans[,5:6] <- sapply(ans[,5:6], function(y) gsub("[[:punct:]]", "", y))
+  ans[,c("challenge_type", "problem_type")] <- sapply(ans[,c("challenge_type", "problem_type")], function(y) gsub("[[:punct:]]", "", y))
   ans <- as.data.frame(ans)
   
   return(ans)
