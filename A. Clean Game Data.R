@@ -4,7 +4,7 @@
 library(readr) # CSV file I/O
 library(dplyr) # Data wrangling
 
-# Load raw data dump
+# Load raw data dump (used Excel text to columns)
 PATH = "./Data/primaBeta.csv"
 df <- read.table(PATH, fill = TRUE, header = TRUE, sep = ",") 
 #sapply(df, function(y) sum(length(which(is.na(y)))))
@@ -28,10 +28,14 @@ names(ans)[c(7,8,11)] <- c("challenge_type", "problem_type", "latency")
 replacement <- "\\3"
 ans[,7:11] <- sapply(ans[,7:11], function(y) gsub(pattern, replacement, y, perl=TRUE)) # HEADER:VALUE -> VALUE
 ans <- as.data.frame(ans)
-# Remove } and {"challenge_type"
+# Remove }
 ans[,11] <- sapply(ans[,11], function(y) gsub("}", "", y))
 ans <- as.data.frame(ans)
+# Remove {"challenge_type"
 ans[,7] <- sapply(ans[,7], function(y) gsub('\\{\\"challenge_type\\"', "", y))
+ans <- as.data.frame(ans)
+# Remove \"
+ans[,c("challenge_type", "problem_type")] <- sapply(ans[,c("challenge_type", "problem_type")], function(y) gsub("[[:punct:]]", "", y))
 ans <- as.data.frame(ans)
 head(ans)
 # Relabel improperly labeled levels
