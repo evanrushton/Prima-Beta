@@ -20,6 +20,9 @@ plot(x=df$pr_est,
      ylab="Post Estimate")
 abline(0,1, col="blue", lwd=2)
 
+# Would like to color chart by completers, partial completers, versus non-completers
+
+
 # paired t-test
 t.test(df$po_est, df$pr_est, paired=TRUE)  # significant difference in means
 
@@ -71,3 +74,7 @@ hipr <- df[which(df$pr_raw > 16), ]
 hist(lopr$po_raw, col=5, breaks=20)
 hist(midpr$po_raw, col=5, breaks=20)
 hist(hipr$po_raw, col=5, breaks=20)
+
+# Select students who improved n count or p percent
+# Look at those who played and those who didn't (subset for low pre-test scores?)
+# How much does game completion describe po_score
